@@ -58,7 +58,7 @@ void MainButtonLed::set_all(Color color) const {
 
 void MainButtonLed::set_number(Color front, Color back, uint8_t number, bool row) const {
   const uint8_t maximum = row ? 5 : 3;
-  if (number == 0 || number > maximum) return;
+  if (number > maximum) return;
 
   Colors colors;
   colors.fill(back);

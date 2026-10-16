@@ -788,6 +788,41 @@ void Player::start_streamed_playback(StreamOutput *stream, const string& options
     stream->printf("Playing %s\r\n", this->filename.c_str());
 }
 
+void Player::replay_streamed_job()
+{
+    if (!THEROBOT->is_homed_all_axes() || this->last_filename.empty()) {
+        return;
+    }
+    if (this->playing_file || THEKERNEL->is_suspending() || THEKERNEL->is_waiting()
+        || this->streamed_session_active()) {
+        return;
+    }
+
+    // Play-start only succeeds while the mainboard still has this file prepared.
+    // A repeated start does not rewind, so seek back to the first line instead.
+    this->filename = this->last_filename;
+    this->filename_crc = crc16::ccitt(
+        reinterpret_cast<const uint8_t *>(this->filename.data()), this->filename.size());
+    this->goto_line = 0;
+    this->played_cnt = 0;
+    this->played_lines = 0;
+    this->file_line = 0;
+    this->playing_lines = 0;
+    this->elapsed_secs = 0;
+    this->has_last_progress = false;
+    this->close_line_source();
+    this->play_data_resend_pending = false;
+    this->current_stream = nullptr;
+    this->streamed_state = StreamedState::seeking;
+    this->streamed_last_request_us = us_ticker_read();
+    this->streamed_wait_started_us = this->streamed_last_request_us;
+
+    char request_data[6];
+    makera::write_be16(request_data, this->filename_crc);
+    makera::write_be32(request_data + 2, this->goto_line);
+    THEKERNEL->serial->PacketMessage(PTYPE_GOTO_START, request_data, sizeof(request_data));
+}
+
 void Player::request_streamed_lines()
 {
     if (!this->line_source.is_open() || this->line_source.at_end()) return;
@@ -912,7 +947,15 @@ void Player::handle_link_packet(const player_link_packet& packet)
         this->played_cnt = offset;
         this->streamed_last_request_us = us_ticker_read();
         this->streamed_wait_started_us = this->streamed_last_request_us;
-        if (line < this->goto_line - 1) return;
+        if (this->goto_line > 0 && line + 1 < this->goto_line) return;
+        if (!this->playing_file) {
+            this->playing_file = true;
+            this->elapsed_secs = 0;
+            this->has_last_progress = false;
+            THEROBOT->absolute_mode = true;
+            THEROBOT->e_absolute_mode = true;
+            THEROBOT->reset_position_from_current_actuator_position();
+        }
         this->line_source.begin(filename_crc, line, offset);
         this->streamed_state = StreamedState::playing;
         this->request_streamed_lines();
@@ -920,10 +963,21 @@ void Player::handle_link_packet(const player_link_packet& packet)
     }
 
     if (packet.type == PTYPE_PLAY_END) {
+        if (this->streamed_state == StreamedState::seeking && !this->playing_file) {
+            this->streamed_state = StreamedState::idle;
+            this->streamed_wait_started_us = 0;
+            return;
+        }
         this->line_source.mark_end(this->filename_crc);
         this->streamed_wait_started_us = 0;
     } else if (packet.type == PTYPE_PLAY_CAN) {
         if (!this->streamed_session_active() || THEKERNEL->is_aborted()) return;
+        // A start or rewind rejected before cutting begins is not a running job.
+        if (!this->playing_file && (this->streamed_state == StreamedState::opening
+            || this->streamed_state == StreamedState::seeking)) {
+            this->reset_streamed_playback();
+            return;
+        }
         this->save_last_progress();
         if (THEKERNEL->is_suspending()) {
             THEKERNEL->set_waiting(false);
@@ -1466,10 +1520,6 @@ void Player::on_main_loop(void *argument)
         // save last progress so status (?) continues to show |P:played_lines,percent_complete,elapsed_secs|
         this->save_last_progress(100);
 
-#if defined(STREAMED_JOB_PLAYBACK)
-        THEKERNEL->serial->PacketMessage(PTYPE_PLAY_END, nullptr, 0);
-#endif
-
 #if !defined(STREAMED_JOB_PLAYBACK)
         this->ocode_handler.reset();
 #endif
@@ -1484,6 +1534,8 @@ void Player::on_main_loop(void *argument)
 
         this->close_line_source();
 #if defined(STREAMED_JOB_PLAYBACK)
+        // Do not send play-end. That releases the prepared file, and the front-button
+        // replay can then only be rejected.
         this->streamed_state = StreamedState::idle;
 #endif
 
@@ -1615,9 +1667,13 @@ void Player::on_set_public_data(void *argument)
     } else if (pdr->second_element_is(restart_job_checksum)) {
     	if (!this->last_filename.empty()) {
     		THEKERNEL->streams->printf("Job restarted: %s.\r\n", this->last_filename.c_str());
+#if defined(STREAMED_JOB_PLAYBACK)
+        	this->replay_streamed_job();
+#else
     		// Quote the filename to handle spaces properly
     		string quoted_filename = "\"" + this->last_filename + "\"";
         	this->play_command(quoted_filename, &(StreamOutput::NullStream));
+#endif
     	}
     } else if (pdr->second_element_is(suspend_play_checksum)) {
         bool pause_outside_play_mode = false;

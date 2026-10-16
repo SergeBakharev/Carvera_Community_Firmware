@@ -73,6 +73,7 @@ class Player : public Module {
         void sync_progress_max();
 #if defined(STREAMED_JOB_PLAYBACK)
         void start_streamed_playback(StreamOutput* stream, const string& options);
+        void replay_streamed_job();
         void handle_link_packet(const player_link_packet& packet);
         void request_streamed_lines();
         void maintain_streamed_source();
