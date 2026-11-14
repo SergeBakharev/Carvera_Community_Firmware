@@ -58,12 +58,12 @@ void MainButtonLed::set_all(Color color) const {
 
 void MainButtonLed::set_number(Color front, Color back, uint8_t number, bool row) const {
   const uint8_t maximum = row ? 5 : 3;
-  if (number == 0 || number > maximum) return;
+  if (number > maximum) return;
 
   Colors colors;
   colors.fill(back);
   for (uint8_t index = 0; index < colors.size(); ++index) {
-    const bool selected = row ? index < number : index % 2 == 0 && index / 2 < number;
+    const bool selected = number != 0 && (row ? index < number : index % 2 == 0 && index / 2 < number);
     if (selected) colors[index] = front;
   }
   write(colors, true);
@@ -77,7 +77,8 @@ void MainButtonLed::write(const Colors& colors, bool exclusive) const {
   const uint32_t previous_priority_mask = read_basepri();
   if (previous_priority_mask == 0U || previous_priority_mask > frame_priority_mask) write_basepri(frame_priority_mask);
 
-  constexpr uint8_t group_order[] = {0, 1, 2, 3, 4, 1};
+  // Six lamps. The last one is the far end of the bar, so it uses the last colour.
+  constexpr uint8_t group_order[] = {0, 1, 2, 3, 4, 4};
   for (uint8_t group : group_order) {
     for (uint8_t led = 0; led < 3; ++led) {
       write_byte(port_, pin_mask_, colors[group].green);

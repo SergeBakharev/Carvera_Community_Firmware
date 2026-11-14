@@ -436,6 +436,8 @@ uint32_t MainButton::button_tick(uint32_t dummy)
 {
 
 	if (this->main_button.get()) {
+		const bool led_bar = CARVERA != THEKERNEL->factory_set->MachineModel;
+		const uint8_t level = this->led.status_brightness();
 		if (!this->button_pressed) {
 			// button down
 			this->button_pressed = true;
@@ -444,46 +446,46 @@ uint32_t MainButton::button_tick(uint32_t dummy)
 		if (us_ticker_read() - this->button_press_time > this->long_press_time_ms * 1000) {
 			this->hold_toggle ++;
 		} else {
-			if(CARVERA_AIR == THEKERNEL->factory_set->MachineModel){
+			if (led_bar) {
 				// Progress 0..1 as float (elapsed_us / long_press_us); integer division would always give 0
 				float progress = (float)(us_ticker_read() - this->button_press_time) / ((float)this->long_press_time_ms * 1000.0f);
 				switch (THEKERNEL->get_state()) {
 					case IDLE:
 						if (this->long_press_enable == "ToolChange"){
 							if (progress > 0.8f){
-								this->set_led_num(0,104,104,0,0,0,4,true);
+								this->set_led_num(0,level,level,0,0,0,4,true);
 							}else if (progress > 0.6f){
-								this->set_led_num(0,104,104,0,0,0,3, true);
+								this->set_led_num(0,level,level,0,0,0,3, true);
 							}else if (progress > 0.4f){
-								this->set_led_num(0,104,104,0,0,0,2, true);
+								this->set_led_num(0,level,level,0,0,0,2, true);
 							}else if (progress > 0.2f){
-								this->set_led_num(0,104,104,0,0,0,1, true);
+								this->set_led_num(0,level,level,0,0,0,1, true);
 							}else{
 								this->set_led_num(0,0,0,0,0,0,0, true);
 							}
 							break;
 						}else if(this->long_press_enable == "Sleep"){
 							if (progress > 0.8f){
-								this->set_led_num(104,104,104,0,0,0,4,true);
+								this->set_led_num(level,level,level,0,0,0,4,true);
 							}else if (progress > 0.6f){
-								this->set_led_num(104,104,104,0,0,0,3, true);
+								this->set_led_num(level,level,level,0,0,0,3, true);
 							}else if (progress > 0.4f){
-								this->set_led_num(104,104,104,0,0,0,2, true);
+								this->set_led_num(level,level,level,0,0,0,2, true);
 							}else if (progress > 0.2f){
-								this->set_led_num(104,104,104,0,0,0,1, true);
+								this->set_led_num(level,level,level,0,0,0,1, true);
 							}else{
 								this->set_led_num(0,0,0,0,0,0,0, true);
 							}
 							break;
 						} else if(this->long_press_enable == "Repeat"){
 							if (progress > 0.8f){
-								this->set_led_num(0,104,0,0,0,0,4, true);
+								this->set_led_num(0,level,0,0,0,0,4, true);
 							}else if (progress > 0.6f){
-								this->set_led_num(0,104,0,0,0,0,3, true);
+								this->set_led_num(0,level,0,0,0,0,3, true);
 							}else if (progress > 0.4f){
-								this->set_led_num(0,104,0,0,0,0,2, true);
+								this->set_led_num(0,level,0,0,0,0,2, true);
 							}else if (progress > 0.2f){
-								this->set_led_num(0,104,0,0,0,0,1, true);
+								this->set_led_num(0,level,0,0,0,0,1, true);
 							}else{
 								this->set_led_num(0,0,0,0,0,0,0, true);
 							}
@@ -494,13 +496,13 @@ uint32_t MainButton::button_tick(uint32_t dummy)
 						
 					case ALARM:
 						if (progress > 0.8f){
-							this->set_led_num(0,0,104,104,0,0,4, true);
+							this->set_led_num(0,0,level,level,0,0,4, true);
 						}else if (progress > 0.6f){
-							this->set_led_num(0,0,104,104,0,0,3, true);
+							this->set_led_num(0,0,level,level,0,0,3, true);
 						}else if (progress > 0.4f){
-							this->set_led_num(0,0,104,104,0,0,2, true);
+							this->set_led_num(0,0,level,level,0,0,2, true);
 						}else if (progress > 0.2f){
-							this->set_led_num(0,0,104,104,0,0,1, true);
+							this->set_led_num(0,0,level,level,0,0,1, true);
 						}else{
 							this->set_led_num(0,0,0,0,0,0,0, true);
 						}
@@ -509,13 +511,13 @@ uint32_t MainButton::button_tick(uint32_t dummy)
 					case SUSPEND:
 					case HOLD:
 						if (progress > 0.8f){
-							this->set_led_num(0,104,0,0,0,0,4,true);
+							this->set_led_num(0,level,0,0,0,0,4,true);
 						}else if (progress > 0.6f){
-							this->set_led_num(0,104,0,0,0,0,3, true);
+							this->set_led_num(0,level,0,0,0,0,3, true);
 						}else if (progress > 0.4f){
-							this->set_led_num(0,104,0,0,0,0,2, true);
+							this->set_led_num(0,level,0,0,0,0,2, true);
 						}else if (progress > 0.2f){
-							this->set_led_num(0,104,0,0,0,0,1, true);
+							this->set_led_num(0,level,0,0,0,0,1, true);
 						}else{
 							this->set_led_num(0,0,0,0,0,0,0, true);
 						}
@@ -526,30 +528,30 @@ uint32_t MainButton::button_tick(uint32_t dummy)
 		}
 		if(CARVERA == THEKERNEL->factory_set->MachineModel){
 			this->main_button_LED_R.set(this->hold_toggle % 4  < 2 ? 0 : 1);
-		} else if(CARVERA_AIR == THEKERNEL->factory_set->MachineModel && this->hold_toggle > 0){
+		} else if (led_bar && this->hold_toggle > 0) {
 			switch (THEKERNEL->get_state()) {
 				case IDLE:
 					if (this->long_press_enable == "ToolChange"){
-						this->set_led_colors(0, this->hold_toggle % 4  < 2 ? 0 : 104, this->hold_toggle % 4  < 2 ? 0 : 104);
+						this->set_led_colors(0, this->hold_toggle % 4  < 2 ? 0 : level, this->hold_toggle % 4  < 2 ? 0 : level);
 					}else if (this->long_press_enable == "Sleep"){
-						this->set_led_colors(this->hold_toggle % 4  < 2 ? 0 : 104, this->hold_toggle % 4  < 2 ? 0 : 104, this->hold_toggle % 4  < 2 ? 0 : 104);
+						this->set_led_colors(this->hold_toggle % 4  < 2 ? 0 : level, this->hold_toggle % 4  < 2 ? 0 : level, this->hold_toggle % 4  < 2 ? 0 : level);
 					}else if (this->long_press_enable == "Repeat"){
-						this->set_led_colors(0, this->hold_toggle % 4  < 2 ? 0 : 104, 0);
+						this->set_led_colors(0, this->hold_toggle % 4  < 2 ? 0 : level, 0);
 					}
 					break;
 				case HOLD:
 					if (this->long_press_enable == "ToolChange"){
-						this->set_led_colors(0, this->hold_toggle % 4  < 2 ? 0 : 104, this->hold_toggle % 4  < 2 ? 0 : 104);
+						this->set_led_colors(0, this->hold_toggle % 4  < 2 ? 0 : level, this->hold_toggle % 4  < 2 ? 0 : level);
 					}else{
-						this->set_led_colors(0, this->hold_toggle % 4  < 2 ? 0 : 104, 0);
+						this->set_led_colors(0, this->hold_toggle % 4  < 2 ? 0 : level, 0);
 					}
 					break;
 				case SUSPEND:
-						this->set_led_colors(0, this->hold_toggle % 4  < 2 ? 0 : 104, 0);
+						this->set_led_colors(0, this->hold_toggle % 4  < 2 ? 0 : level, 0);
 					break;
 				case ALARM:
 				case SLEEP:
-					this->set_led_colors(0, 0, this->hold_toggle % 4  < 2 ? 104 : 0);
+					this->set_led_colors(0, 0, this->hold_toggle % 4  < 2 ? level : 0);
 					break;
 			}
 		}
@@ -563,6 +565,9 @@ uint32_t MainButton::button_tick(uint32_t dummy)
 				button_state = BUTTON_SHORT_PRESSED;
 			}
 			this->button_pressed = false;
+			if (CARVERA != THEKERNEL->factory_set->MachineModel) {
+				this->old_state = 0xFF;
+			}
 		} else {
             if(++led_update_timer > this->poll_frequency * 0.2) {
             	button_state = BUTTON_LED_UPDATE;
@@ -903,9 +908,9 @@ void MainButton::set_led_num(unsigned char front_red, unsigned char front_green,
                              unsigned char number, bool row)
 {
 	const uint8_t maximum = row ? 5 : 3;
-	if (number == 0 || number > maximum) return;
+	if (number > maximum) return;
 	for (uint8_t index = 0; index < 5; ++index) {
-		const bool selected = row ? index < number : index % 2 == 0 && index / 2 < number;
+		const bool selected = number != 0 && (row ? index < number : index % 2 == 0 && index / 2 < number);
 		this->led_px[index][0] = selected ? front_red : back_red;
 		this->led_px[index][1] = selected ? front_green : back_green;
 		this->led_px[index][2] = selected ? front_blue : back_blue;
